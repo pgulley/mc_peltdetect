@@ -58,7 +58,8 @@ def cmd_run(args: argparse.Namespace) -> None:
         zero_threshold=args.zero_threshold,
         silence_multiplier=args.silence_multiplier,
     )
-    result = detector(
+    # `peltdetect.mc_pelt.MCPelt` core output is metadata-free; wrapper attaches metadata for persistence.
+    result = detector.detect_for_source(
         series,
         source_id=source_id,
         query=args.query,

@@ -45,12 +45,10 @@ class MCPelt:
     zero_threshold: float = 1.0
     silence_multiplier: float = 5.0
 
-    def __call__(
+    def detect(
         self,
         series: pd.DataFrame | Sequence[Mapping[str, Any]],
         *,
-        source_id: int,
-        query: str = "*",
         start_date: Optional[dt.date] = None,
         end_date: Optional[dt.date] = None,
     ) -> Dict[str, Any]:
@@ -69,9 +67,8 @@ class MCPelt:
             if str(self.penalty).lower() == "auto"
             else float(self.penalty)
         )
+
         run = run_pelt(
-            query=query,
-            source_id=int(source_id),
             start_date=effective_start,
             end_date=effective_end,
             dates=prepared["date"].to_list(),
@@ -81,6 +78,7 @@ class MCPelt:
             min_size=int(self.min_size),
             penalty=float(penalty_value),
         )
+
         alerts = compute_alerts(
             segments=run.segments,
             volumes=prepared["volume"].to_numpy(),
@@ -90,23 +88,21 @@ class MCPelt:
             zero_threshold=float(self.zero_threshold),
             silence_multiplier=float(self.silence_multiplier),
         )
+
+        # Core detection payload: detection window + segments + alerts.
+        # No `source_id` / `query` metadata here; callers can attach it externally.
         return {
-            "source_id": int(source_id),
-            "query": query,
             "start_date": effective_start.isoformat(),
             "end_date": effective_end.isoformat(),
             "model": self.model,
             "min_size": int(self.min_size),
             "penalty_used": float(penalty_value),
-            "dates": [d.isoformat() for d in prepared["date"].to_list()],
-            "volume": [int(v) for v in prepared["volume"].to_list()],
-            "log_volume": [float(x) for x in prepared["log_volume"].to_list()],
             "alerts": [a.to_dict() for a in alerts],
             "breakpoints": [s.start.isoformat() for s in run.segments[1:]],
             "segments": [s.to_dict() for s in run.segments],
         }
 
-    def detect_alerts(
+    def detect_for_source(
         self,
         series: pd.DataFrame | Sequence[Mapping[str, Any]],
         *,
@@ -114,14 +110,108 @@ class MCPelt:
         query: str = "*",
         start_date: Optional[dt.date] = None,
         end_date: Optional[dt.date] = None,
+    ) -> Dict[str, Any]:
+        result = self.detect(series, start_date=start_date, end_date=end_date)
+        # Metadata wrapper for persistence/reporting workflows.
+        result.update({"source_id": int(source_id), "query": query})
+        return result
+
+    def __call__(
+        self,
+        series: pd.DataFrame | Sequence[Mapping[str, Any]],
+        *,
+        start_date: Optional[dt.date] = None,
+        end_date: Optional[dt.date] = None,
+    ) -> Dict[str, Any]:
+        return self.detect(series, start_date=start_date, end_date=end_date)
+
+    def detect_alerts(
+        self,
+        series: pd.DataFrame | Sequence[Mapping[str, Any]],
+        *,
+        start_date: Optional[dt.date] = None,
+        end_date: Optional[dt.date] = None,
     ) -> List[Dict[str, Any]]:
-        return self(
-            series,
-            source_id=source_id,
-            query=query,
-            start_date=start_date,
-            end_date=end_date,
-        )["alerts"]
+        return self.detect(series, start_date=start_date, end_date=end_date)["alerts"]
+
+    def chart_alerts(
+        self,
+        series: pd.DataFrame | Sequence[Mapping[str, Any]],
+        alerts: Sequence[Mapping[str, Any]],
+        *,
+        start_date: Optional[dt.date] = None,
+        end_date: Optional[dt.date] = None,
+        max_alerts: int = 10,
+    ) -> Any:
+        """
+        Create a matplotlib chart (Jupyter-renderable) of `volume` with vertical alert markers.
+
+        `series` should match the input you would pass to `detect_alerts()`, and `alerts`
+        should be the output list from `detect_alerts()`.
+        """
+        raw = _as_dataframe(series)
+        if raw.empty:
+            raise ValueError("Input series is empty.")
+
+        coerced_dates = raw["date"].map(_coerce_date)
+        effective_start = start_date or min(coerced_dates)
+        effective_end = end_date or max(coerced_dates)
+        if effective_start > effective_end:
+            raise ValueError("start_date must be <= end_date")
+
+        prepared = prepare_series(raw, start_date=effective_start, end_date=effective_end)
+        dates = prepared["date"].to_list()
+        volume = prepared["volume"].to_list()
+        x = [dt.datetime.combine(d, dt.time()) for d in dates]
+
+        index_by_date = {d: i for i, d in enumerate(dates)}
+
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots(figsize=(12, 4))
+        ax.plot(x, volume, linewidth=1.6, color="C0")
+
+        type_colors = {
+            "drop": "gold",
+            "near_zero": "orange",
+            "silence": "red",
+            "surge": "cornflowerblue",
+        }
+
+        seen_types: set[str] = set()
+        for a in list(alerts)[:max_alerts]:
+            a_type = str(a.get("type", ""))
+            start_raw = a.get("start")
+            if not start_raw:
+                continue
+            try:
+                start_dt = _coerce_date(start_raw)
+            except Exception:
+                continue
+            if start_dt not in index_by_date:
+                continue
+
+            idx = index_by_date[start_dt]
+            color = type_colors.get(a_type, "black")
+            label = a_type if a_type not in seen_types else None
+            ax.axvline(x[idx], color=color, alpha=0.35, linestyle="--", linewidth=1.4, label=label)
+            seen_types.add(a_type)
+
+        if seen_types:
+            ax.legend(loc="upper right", fontsize=9)
+
+        ax.set_title("PELT volume with alert markers")
+        ax.set_xlabel("Date")
+        ax.set_ylabel("stories/day")
+
+        if len(x) <= 14:
+            ax.set_xticks(x)
+            ax.set_xticklabels([d.isoformat() for d in dates], rotation=45, ha="right", fontsize=8)
+
+        fig.tight_layout()
+        return fig
+
+
 
 
 __all__ = ["MCPelt"]

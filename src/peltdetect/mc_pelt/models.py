@@ -21,7 +21,6 @@ class Segment:
             "start": self.start.isoformat(),
             "end": self.end.isoformat(),
             "mean_volume": self.mean_volume,
-            "mean_log_volume": self.mean_log_volume,
         }
 
 
@@ -45,8 +44,6 @@ class Alert:
 
 @dataclasses.dataclass
 class RunResult:
-    query: str
-    source_id: int
     start_date: dt.date
     end_date: dt.date
     model: str

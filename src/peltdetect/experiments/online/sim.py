@@ -143,10 +143,9 @@ def simulate_online_alerts_for_setting(
             dates_slice = series.dates[window_start_idx : run_idx + 1]
             vol_slice = np.asarray(series.volume[window_start_idx : run_idx + 1], dtype=float)
             window_df = pd.DataFrame({"date": dates_slice, "volume": vol_slice.astype(int)})
+            # Core detection output is metadata-free; online simulation already tracks `series.source_id` / `series.query`.
             result = detector(
                 window_df,
-                source_id=series.source_id,
-                query=series.query,
                 start_date=dates_slice[0],
                 end_date=dates_slice[-1],
             )

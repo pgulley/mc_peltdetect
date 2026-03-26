@@ -2,3 +2,6 @@ out/
 venv/
 .pyc
 .DS_STORE
+__pycache__
+build
+*.egg-info

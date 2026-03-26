@@ -222,8 +222,12 @@ def main() -> None:
     if end_date < start_date:
         raise SystemExit("end-date must be >= start-date")
 
+    # Anchor default output under the repository's `peltdetect/out/` directory.
+    # This avoids accidentally creating `peltdetect/peltdetect/out/...` when the script
+    # is executed with a working directory inside `peltdetect/`.
+    out_base = Path(__file__).resolve().parents[1] / "out" / "online_eval"
     out_dir = Path(args.out_dir).resolve() if args.out_dir else (
-        Path("peltdetect/out/online_eval") / f"source_{args.source_id}" / f"{start_date.isoformat()}_{end_date.isoformat()}"
+        out_base / f"source_{args.source_id}" / f"{start_date.isoformat()}_{end_date.isoformat()}"
     )
     out_dir.mkdir(parents=True, exist_ok=True)
     figures_dir = out_dir / "figures"
@@ -235,6 +239,7 @@ def main() -> None:
     from peltdetect.charts.online import plot_delay_cdf, plot_source_timeline_overlay, plot_source_volume_with_events
     from peltdetect.mc_pelt import MCPelt
     from peltdetect.mc_pelt.io import save_result, write_dict_rows_csv
+    from peltdetect.mc_pelt.preprocess import prepare_series
     from peltdetect.experiments.online.eval_models import OnlineEvalSetting
     from peltdetect.experiments.online.first_detection import (
         first_online_detection_for_truth,
@@ -266,15 +271,22 @@ def main() -> None:
         source_id=int(args.source_id),
         api_key=api_key,
     )
-    offline_result = MCPelt()(series_df, source_id=int(args.source_id), query=args.query, start_date=start_date, end_date=end_date)
+    offline_result = MCPelt().detect_for_source(
+        series_df,
+        source_id=int(args.source_id),
+        query=args.query,
+        start_date=start_date,
+        end_date=end_date,
+    )
     save_result(offline_result, out_dir=out_dir / "offline_reference")
 
+    prepared_series = prepare_series(series_df, start_date=start_date, end_date=end_date)
     series = SourceSeries(
         source_id=int(args.source_id),
         query=str(offline_result.get("query", "*")),
-        dates=[dt.date.fromisoformat(str(d)[:10]) for d in offline_result.get("dates", [])],
-        volume=[int(v) for v in offline_result.get("volume", [])],
-        log_volume=[float(v) for v in offline_result.get("log_volume", [])],
+        dates=[dt.date.fromisoformat(str(d)[:10]) for d in prepared_series["date"].to_list()],
+        volume=[int(v) for v in prepared_series["volume"].to_list()],
+        log_volume=[float(v) for v in prepared_series["log_volume"].to_list()],
     )
     source_series = {int(args.source_id): series}
 

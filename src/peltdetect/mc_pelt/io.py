@@ -24,7 +24,6 @@ def save_result(result: Dict[str, Any], *, out_dir: Path) -> None:
                 "start",
                 "end",
                 "mean_volume",
-                "mean_log_volume",
             ],
         )
         writer.writeheader()
@@ -36,7 +35,6 @@ def save_result(result: Dict[str, Any], *, out_dir: Path) -> None:
                     "start": segment.get("start"),
                     "end": segment.get("end"),
                     "mean_volume": segment.get("mean_volume"),
-                    "mean_log_volume": segment.get("mean_log_volume"),
                 }
             )
 
@@ -62,11 +60,13 @@ def save_result(result: Dict[str, Any], *, out_dir: Path) -> None:
     dates = list(result.get("dates", []))
     volume = list(result.get("volume", []))
     log_volume = list(result.get("log_volume", []))
-    with series_csv.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["date", "volume", "log_volume"])
-        writer.writeheader()
-        for d, v, lv in zip(dates, volume, log_volume):
-            writer.writerow({"date": d, "volume": v, "log_volume": lv})
+    # Only write the per-day series payload if it was included in the run result.
+    if dates and volume and log_volume and len(dates) == len(volume) and len(volume) == len(log_volume):
+        with series_csv.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=["date", "volume", "log_volume"])
+            writer.writeheader()
+            for d, v, lv in zip(dates, volume, log_volume):
+                writer.writerow({"date": d, "volume": v, "log_volume": lv})
 
 
 def load_result(run_json_path: Path) -> Dict[str, Any]:

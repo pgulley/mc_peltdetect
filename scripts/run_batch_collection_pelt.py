@@ -112,7 +112,7 @@ def _run_one(
             source_id=source_id,
             api_key=api_key,
         )
-        result = detector(
+        result = detector.detect_for_source(
             series,
             source_id=source_id,
             query=query,

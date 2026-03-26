@@ -10,7 +10,7 @@ It uses PELT (`ruptures`) on a `log1p(volume)` signal and emits segment/alert ar
 1. Fetch daily story counts for a source from Media Cloud.
 2. Normalize to continuous daily series and run PELT segmentation.
 3. Emit rule-based alerts (`drop`, `surge`, `near_zero`, `silence`).
-4. Persist run artifacts (`run_result.json`, `segments.csv`, `alerts.csv`, `series.csv`).
+4. Persist run artifacts (`run_result.json`, `segments.csv`, `alerts.csv`). `series.csv` is optional and is only written when the persisted `run_result.json` includes per-day `dates`/`volume`/`log_volume` (older runs).
 5. Run online evaluation for a source by deriving offline truth, simulating online alerts in-memory, and scoring matches.
 
 ---
@@ -106,7 +106,7 @@ For offline run folders:
 - `run_result.json`
 - `segments.csv`
 - `alerts.csv`
-- `series.csv`
+- `series.csv` (optional)
 
 For online eval folders:
 - `truth_events.csv`

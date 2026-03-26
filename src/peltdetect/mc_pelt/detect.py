@@ -60,8 +60,6 @@ def segments_from_breakpoints(
 
 def run_pelt(
     *,
-    query: str,
-    source_id: int,
     start_date: dt.date,
     end_date: dt.date,
     dates: List[dt.date],
@@ -87,8 +85,6 @@ def run_pelt(
         log_volume=log_volume_1d,
     )
     return RunResult(
-        query=query,
-        source_id=int(source_id),
         start_date=start_date,
         end_date=end_date,
         model=model,
