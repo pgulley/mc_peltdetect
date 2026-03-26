@@ -14,9 +14,9 @@ def _ensure_package_importable(repo_root: Path) -> None:
     # Supports running this script directly from repo root without installation.
     import sys
 
-    src_path = repo_root / "peltdetect" / "src"
-    if str(src_path) not in sys.path:
-        sys.path.insert(0, str(src_path))
+    pkg_path = repo_root / "peltdetect"
+    if str(pkg_path) not in sys.path:
+        sys.path.insert(0, str(pkg_path))
 
 
 def _parse_date(value: str) -> dt.date:

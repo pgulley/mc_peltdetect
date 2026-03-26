@@ -126,10 +126,10 @@ For online eval folders:
 ## Package Layout
 
 Key modules:
-- `src/peltdetect/mc_pelt/` — detector + storage primitives
-- `src/peltdetect/experiments/online/` — online evaluation models/matching/metrics/simulation/truth helpers
-- `src/peltdetect/charts/` — run and online plotting helpers
-- `src/peltdetect/cli.py` — single-source CLI
+- `peltdetect/mc_pelt/` — detector + storage primitives
+- `peltdetect/experiments/online/` — online evaluation models/matching/metrics/simulation/truth helpers
+- `peltdetect/charts/` — run and online plotting helpers
+- `peltdetect/cli.py` — single-source CLI
 
 Scripts:
 - `scripts/run_batch_collection_pelt.py`

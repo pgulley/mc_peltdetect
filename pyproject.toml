@@ -20,9 +20,9 @@ dependencies = [
 peltdetect = "peltdetect.cli:main"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = {"" = "."}
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
 include = ["peltdetect*"]
 
