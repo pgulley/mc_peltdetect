@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "peltdetect"
+version = "0.1.0"
+description = "PELT-based feed activity change detection harness"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "mediacloud",
+  "ruptures",
+  "numpy",
+  "pandas",
+  "matplotlib",
+]
+
+[project.scripts]
+peltdetect = "peltdetect.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["peltdetect*"]
+
